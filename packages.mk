@@ -7,6 +7,6 @@ YUM_PACKAGES = \
     m2crypto \
     python2-kubernetes \
     runc \
-    salt-minion-2018.3.3-1.el7 \
+    salt-minion-2019.2.0-1.el7 \
     skopeo \
     yum-plugin-versionlock \

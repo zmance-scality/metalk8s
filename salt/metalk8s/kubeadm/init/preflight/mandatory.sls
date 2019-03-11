@@ -8,7 +8,7 @@ include:
 
 Install mandatory packages:
   {{ pkg_installed() }}
-    - pkgs: {{ kubeadm_preflight.mandatory.packages }}
+    - pkgs: {{ kubeadm_preflight.mandatory.packages | tojson }}
     - require:
       - test: Repositories configured
 
@@ -43,7 +43,7 @@ Set sysctl {{ item }} value to {{ value }}:
 Disable swap device {{ swap_device }}:
   module.run:
     - mount.swapoff:
-      - name: {{ swap_device  }}
+      - name: {{ swap_device }}
 {%- endfor %}
 
 Prevent swap mount from fstab:

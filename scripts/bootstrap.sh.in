@@ -68,14 +68,14 @@ configure_yum_repositories() {
 }
 
 configure_salt_repository() {
-    "$RPM" --import https://repo.saltstack.com/yum/redhat/7/x86_64/archive/2018.3.3/SALTSTACK-GPG-KEY.pub
+    "$RPM" --import https://repo.saltstack.com/yum/redhat/7/x86_64/archive/2019.2.0/SALTSTACK-GPG-KEY.pub
     cat > /etc/yum.repos.d/saltstack.repo << EOF
 [saltstack]
 name=SaltStack repo for RHEL/CentOS \$releasever
-baseurl=https://repo.saltstack.com/yum/redhat/\$releasever/\$basearch/archive/2018.3.3
+baseurl=https://repo.saltstack.com/yum/redhat/\$releasever/\$basearch/archive/2019.2.0
 enabled=1
 gpgcheck=1
-gpgkey=https://repo.saltstack.com/yum/redhat/\$releasever/\$basearch/archive/2018.3.3/SALTSTACK-GPG-KEY.pub
+gpgkey=https://repo.saltstack.com/yum/redhat/\$releasever/\$basearch/archive/2019.2.0/SALTSTACK-GPG-KEY.pub
 EOF
 }
 
@@ -210,17 +210,17 @@ sync_salt() {
 }
 
 run_certs() {
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.ca saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.apiserver saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.apiserver-kubelet-client saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.sa saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.etcd-ca saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.etcd-healthcheck-client saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.etcd-peer saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.etcd-server saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.apiserver-etcd-client saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.front-proxy-ca saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
-    ${SALT_CALL} --retcode-passthrough state.apply metalk8s.kubeadm.init.certs.front-proxy-client saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.ca saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.apiserver saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.apiserver-kubelet-client saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.sa saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.etcd-ca saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.etcd-healthcheck-client saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.etcd-peer saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.etcd-server saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.apiserver-etcd-client saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.front-proxy-ca saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
+    ${SALT_CALL} --retcode-passthrough -l debug state.apply metalk8s.kubeadm.init.certs.front-proxy-client saltenv=metalk8s-@VERSION@ pillarenv=metalk8s-@VERSION@
 }
 
 run_kubeconfig() {

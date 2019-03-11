@@ -6,7 +6,7 @@ include:
 
 Install recommended packages:
   {{ pkg_installed() }}
-    - pkgs: {{ kubeadm_preflight.recommended.packages }}
+    - pkgs: {{ kubeadm_preflight.recommended.packages | tojson }}
     - require:
       - test: Repositories configured
 
