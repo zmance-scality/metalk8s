@@ -84,3 +84,36 @@ def send_orchestration_event(name, data=None, **kwargs):
     return __states__['salt.runner'](
         'event.send', tag=name, data=data, **kwargs
     )
+
+
+def node_orchestration_marked(name, **kwargs):
+    """Mark a Node as being the target of an active orchestration.
+
+    The current orchestration JID is stored in the
+    "metalk8s.scality.com/active-orchestration" annotation.
+    """
+    try:
+        orch_jid = __orchestration_jid__
+    except NameError:
+        return {
+            'name': name,
+            'result': False,
+            'changes': {},
+            'comment': "Cannot run outside of an orchestration context."
+        }
+
+    return __states__['metalk8s_kubernetes.node_annotation_present'](
+        name='metalk8s.scality.com/active-orchestration',
+        node=name,
+        value=orch_jid,
+        **kwargs
+    )
+
+
+def node_orchestration_unmarked(name, **kwargs):
+    """Remove the "active-orchestration" annotation from a Node."""
+    return __states__['metalk8s_kubernetes.node_annotation_absent'](
+        name='metalk8s.scality.com/active-orchestration',
+        node=name,
+        **kwargs
+    )

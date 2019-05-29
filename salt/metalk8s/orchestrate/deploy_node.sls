@@ -6,11 +6,20 @@
 
 {%- set event_prefix = "metalk8s/orchestrate/deploy_node/$jid" %}
 
+Annotate Node with orchestration JID:
+  metalk8s.node_orchestration_marked:
+    - name: {{ node_name }}
+    - kubeconfig: {{ kubeconfig }}
+    - context: {{ context }}
+    - order: 1
+
 Send start event:
   metalk8s.send_orchestration_event:
     - name: {{ event_prefix }}/start
     - data:
         name: {{ node_name }}
+    - require:
+      - metalk8s: Annotate Node with orchestration JID
 
 {%- if node_name not in salt.saltutil.runner('manage.up') %}
 Send event for "deploy-minion" step:
@@ -162,3 +171,10 @@ Register the node into etcd cluster:
       - salt: Run the highstate
 
 {%- endif %}
+
+Remove orchestration annotation:
+  metalk8s.node_orchestration_unmarked:
+    - name: {{ node_name }}
+    - kubeconfig: {{ kubeconfig }}
+    - context: {{ context }}
+    - order: last
