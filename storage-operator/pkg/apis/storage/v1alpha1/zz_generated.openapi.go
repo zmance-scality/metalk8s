@@ -67,7 +67,23 @@ func schema_pkg_apis_storage_v1alpha1_VolumeSpec(ref common.ReferenceCallback) c
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "VolumeSpec defines the desired state of Volume",
-				Properties:  map[string]spec.Schema{},
+				Properties: map[string]spec.Schema{
+					"node": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the node on which the volume is available",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"storageClassName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the storageClass that gets assigned to the volume",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"node"},
 			},
 		},
 		Dependencies: []string{},

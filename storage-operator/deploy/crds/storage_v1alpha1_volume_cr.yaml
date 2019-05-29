@@ -3,5 +3,4 @@ kind: Volume
 metadata:
   name: example-volume
 spec:
-  # Add fields here
-  size: 3
+  node: bootstrap
