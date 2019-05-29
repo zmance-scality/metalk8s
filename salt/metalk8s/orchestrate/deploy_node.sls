@@ -4,7 +4,25 @@
 {%- set kubeconfig = "/etc/kubernetes/admin.conf" %}
 {%- set context = "kubernetes-admin@kubernetes" %}
 
+{%- set event_prefix = "metalk8s/orchestrate/deploy_node/$jid" %}
+
+Send start event:
+  metalk8s.send_orchestration_event:
+    - name: {{ event_prefix }}/start
+    - data:
+        name: {{ node_name }}
+
 {%- if node_name not in salt.saltutil.runner('manage.up') %}
+Send event for "deploy-minion" step:
+  metalk8s.send_orchestration_event:
+    - name: {{ event_prefix }}/step
+    - data:
+        key: deploy-minion
+        node: {{ node_name }}
+        message: Deploying Salt Minion
+    - require:
+      - metalk8s: Send start event
+
 Deploy salt-minion on a new node:
   salt.state:
     - ssh: true
@@ -13,6 +31,8 @@ Deploy salt-minion on a new node:
     - saltenv: metalk8s-{{ version }}
     - sls:
       - metalk8s.roles.minion
+    - require:
+      - metalk8s: Send event for "deploy-minion" step
 
 Accept key:
   module.run:
@@ -31,7 +51,6 @@ Wait minion available:
     - require_in:
       - salt: Set grains
       - salt: Refresh the mine
-      - salt: Cordon the node
 {%- endif %}
 
 Set grains:
@@ -40,17 +59,34 @@ Set grains:
     - saltenv: metalk8s-{{ version }}
     - sls:
       - metalk8s.node.grains
+    - require:
+      - metalk8s: Send start event
 
 Refresh the mine:
   salt.function:
     - name: mine.update
     - tgt: '*'
+    - require:
+      - metalk8s: Send start event
+
+Send event for "drain-node" step:
+  metalk8s.send_orchestration_event:
+    - name: {{ event_prefix }}/step
+    - data:
+        key: drain-node
+        node: {{ node_name }}
+        message: Draining Node
+    - require:
+      - salt: Set grains
+      - salt: Refresh the mine
 
 Cordon the node:
   metalk8s_cordon.node_cordoned:
     - name: {{ node_name }}
     - kubeconfig: {{ kubeconfig }}
     - context: {{ context }}
+    - require:
+      - metalk8s: Send event for "drain-node" step
 
 Drain the node:
   metalk8s_drain.node_drained:
@@ -63,14 +99,34 @@ Drain the node:
     - require:
       - metalk8s_cordon: Cordon the node
 
+Send event for "highstate" step:
+  metalk8s.send_orchestration_event:
+    - name: {{ event_prefix }}/step
+    - data:
+        key: highstate
+        node: {{ node_name }}
+        message: Bringing up to highstate
+    - require:
+      - salt: Set grains
+      - salt: Refresh the mine
+      - metalk8s_drain: Drain the node
+
 Run the highstate:
   salt.state:
     - tgt: {{ node_name }}
     - highstate: True
     - require:
-      - salt: Set grains
-      - salt: Refresh the mine
-      - metalk8s_drain: Drain the node
+      - metalk8s: Send event for "highstate" step
+
+Send event for "finalize" step:
+  metalk8s.send_orchestration_event:
+    - name: {{ event_prefix }}/step
+    - data:
+        key: finalize
+        node: {{ node_name }}
+        message: Finalizing
+    - require:
+      - salt: Run the highstate
 
 Uncordon the node:
   metalk8s_cordon.node_uncordoned:
@@ -78,7 +134,7 @@ Uncordon the node:
     - kubeconfig: {{ kubeconfig }}
     - context: {{ context }}
     - require:
-      - salt: Run the highstate
+      - metalk8s: Send event for "finalize" step
 
 {%- set master_minions = salt['metalk8s.minions_by_role']('master') %}
 

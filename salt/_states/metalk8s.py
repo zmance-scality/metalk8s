@@ -1,7 +1,10 @@
 """Custom states for MetalK8s."""
 
 import time
+import logging
 
+
+log = logging.getLogger(__name__)
 
 __virtualname__ = "metalk8s"
 
@@ -61,3 +64,23 @@ def module_run(name, attemps=1, sleep_time=10, **kwargs):
             time.sleep(sleep_time)
 
     return ret
+
+
+def send_orchestration_event(name, data=None, **kwargs):
+    """Send an event from an Orchestrate Runner.
+
+    This method uses the context variable `__orchestration_jid__` to replace
+    the `$jid` pattern in the event tag (`name` argument).
+    """
+    try:
+        orchestration_jid = __orchestration_jid__
+    except NameError:
+        orchestration_jid = None
+        log.error("No orchestration JID for event '%s'.", name)
+
+    if orchestration_jid is not None:
+        name = name.replace('$jid', orchestration_jid)
+
+    return __states__['salt.runner'](
+        'event.send', tag=name, data=data, **kwargs
+    )
