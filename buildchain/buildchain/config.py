@@ -52,10 +52,21 @@ VAGRANT_UP_ARGS : Tuple[str, ...] = tuple(shlex.split(
 class ExtCommand(enum.Enum):
     """External commands used by the build chain."""
 
-    GIT      = os.getenv('GIT_BIN',      'git')
-    HARDLINK = os.getenv('HARDLINK_BIN', 'hardlink')
-    MKISOFS  = os.getenv('MKISOFS_BIN',  'mkisofs')
-    SKOPEO   = os.getenv('SKOPEO_BIN',   'skopeo')
-    VAGRANT  = os.getenv('VAGRANT_BIN',  'vagrant')
+    GIT          = os.getenv('GIT_BIN',          'git')
+    HARDLINK     = os.getenv('HARDLINK_BIN',     'hardlink')
+    MKISOFS      = os.getenv('MKISOFS_BIN',      'mkisofs')
+    SKOPEO       = os.getenv('SKOPEO_BIN',       'skopeo')
+    VAGRANT      = os.getenv('VAGRANT_BIN',      'vagrant')
+    OPERATOR_SDK = os.getenv('OPERATOR_SDK_BIN', 'operator-sdk')
+    GOFMT        = os.getenv('GOFMT_BIN',        'gofmt')
+
+    @property
+    def command_name(self) -> str:
+        """Return the name of the command."""
+        if self is self.OPERATOR_SDK:
+            return 'operator-sdk'
+        # See https://github.com/PyCQA/pylint/issues/2062
+        # pylint: disable=no-member
+        return self.name.lower()
 
 # }}}

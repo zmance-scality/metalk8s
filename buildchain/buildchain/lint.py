@@ -10,24 +10,31 @@ is run in its own sub-task (so that you can run a single one and/or run several
 linting tools in parallel).
 
 Overview:
-
-                ┌────────────┐
-            ───>│ lint:yaml  │
-┌────────┐╱     └────────────┘
+                ┌──────────────┐
+           ╱───>│ lint:python  │
+          ╱     └──────────────┘
+         ╱      ┌──────────────┐
+        ╱   ───>│ lint:yaml    │
+┌────────┐╱     └──────────────┘
 │  lint  │
-└────────┘╲     ┌────────────┐
-            ───>│ lint:shell │
-                └────────────┘
+└────────┘╲     ┌──────────────┐
+        ╲   ───>│ lint:shell   │
+         ╲      └──────────────┘
+          ╲     ┌──────────────┐
+           ╲───>│ lint:go      │
+                └──────────────┘
 """
 
 
 import os
 import shlex
 from pathlib import Path
-from typing import Callable, Iterator, List, Tuple
+import subprocess
+from typing import Callable, Iterator, List, Optional, Tuple
 
 import doit  # type: ignore
 
+from buildchain import config
 from buildchain import constants
 from buildchain import types
 from buildchain import utils
@@ -38,6 +45,7 @@ def task_lint() -> Iterator[types.TaskDict]:
     for create_lint_task in LINTERS:
         yield create_lint_task()
 
+# Python {{{
 
 def lint_python() -> types.TaskDict:
     """Run Python linting."""
@@ -51,11 +59,14 @@ def lint_python() -> types.TaskDict:
     env = {'PATH': os.environ['PATH'], 'OSTYPE': os.uname().sysname}
     return {
         'name': 'python',
+        'title': utils.title_with_subtask_name('LINT'),
         'doc': lint_python.__doc__,
         'actions': [doit.action.CmdAction(cmd, env=env)],
         'file_dep': python_sources,
     }
 
+# }}}
+# Shell {{{
 
 def lint_shell() -> types.TaskDict:
     """Run shell scripts linting."""
@@ -64,27 +75,82 @@ def lint_shell() -> types.TaskDict:
         shell_scripts.extend(constants.ROOT.glob('*/*{}'.format(ext)))
     return {
         'name': 'shell',
+        'title': utils.title_with_subtask_name('LINT'),
         'doc': lint_shell.__doc__,
         'actions': [['tox', '-e', 'lint-shell']],
         'file_dep': shell_scripts,
     }
 
+# }}}
+# YAML {{{
 
 def lint_yaml() -> types.TaskDict:
     """Run YAML linting."""
     return {
         'name': 'yaml',
+        'title': utils.title_with_subtask_name('LINT'),
         'doc': lint_yaml.__doc__,
         'actions': [['tox', '-e', 'lint-yaml']],
         'file_dep': list(constants.ROOT.glob('salt/**/*.yaml')),
     }
 
+# }}}
+# Go {{{
+
+def check_go_fmt() -> Optional[doit.exceptions.TaskError]:
+    """Check if Go code is properly formatted."""
+    cwd  = constants.STORAGE_OPERATOR_ROOT
+    cmd  = [
+        config.ExtCommand.GOFMT.value, '-s', '-d',
+        *tuple(constants.STORAGE_OPERATOR_FMT_ARGS)
+    ]
+    diff = subprocess.check_output(cmd, cwd=cwd)
+    if diff:
+        return doit.exceptions.TaskError(
+            msg='badly formatted Go code, please run `doit.sh format:go`'
+        )
+    return None
+
+
+def check_go_codegen() -> Optional[doit.exceptions.TaskError]:
+    """Check if the generated files are up to date."""
+    cwd  = constants.STORAGE_OPERATOR_ROOT
+    git_diff = [config.ExtCommand.GIT.value, 'diff']
+    base = subprocess.check_output(git_diff)
+    for target in ('k8s', 'openapi'):
+        cmd = [config.ExtCommand.OPERATOR_SDK.value, 'generate', target]
+        subprocess.check_call(cmd, cwd=cwd)
+    current = subprocess.check_output(git_diff)
+    # If the diff changed after running the code generation that means that
+    # the generated files are not in sync with the "source" files.
+    if current != base:
+        return doit.exceptions.TaskError(
+            msg='outdated generated Go files, did you run `doit.sh codegen:go`?'
+        )
+    return None
+
+
+def lint_go() -> types.TaskDict:
+    """Run Go linting."""
+    return {
+        'name': 'go',
+        'title': utils.title_with_subtask_name('LINT'),
+        'doc': lint_go.__doc__,
+        'actions': [check_go_fmt, check_go_codegen],
+        'task_dep': [
+            'check_for:gofmt', 'check_for:operator-sdk', 'check_for:git'
+        ],
+        'file_dep': list(constants.STORAGE_OPERATOR_SOURCES),
+    }
+
+# }}}
 
 # List of available linter task.
 LINTERS : Tuple[Callable[[], types.TaskDict], ...] = (
     lint_python,
     lint_shell,
     lint_yaml,
+    lint_go,
 )
 
 

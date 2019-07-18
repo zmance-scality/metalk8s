@@ -7,7 +7,7 @@
 import inspect
 import sys
 from pathlib import Path
-from typing import List
+from typing import Callable, List
 
 from buildchain import config
 from buildchain import constants
@@ -47,17 +47,37 @@ def build_relpath(path: Path) -> Path:
     return path.relative_to(config.BUILD_ROOT.parent)
 
 
-def title_with_target1(command: str, task: types.Task) -> str:
-    """Return a title with the command prefixed with the first target.
+def title_with_target1(command: str) -> Callable[[types.Task], str]:
+    """Return a title with the command suffixed with the first target.
 
     Arguments:
         command: name of the command
         task: a doit task
 
     Returns:
-        A string describing the task, with the command name properly padded.
+        A function that returns the title
     """
-    return '{cmd: <{width}} {path}'.format(
-        cmd=command, width=constants.CMD_WIDTH,
-        path=build_relpath(Path(task.targets[0])),
-    )
+    def title(task: types.Task) -> str:
+        return '{cmd: <{width}} {path}'.format(
+            cmd=command, width=constants.CMD_WIDTH,
+            path=build_relpath(Path(task.targets[0])),
+        )
+    return title
+
+
+def title_with_subtask_name(command: str) -> Callable[[types.Task], str]:
+    """Return a title with the command suffixed with the sub-task name.
+
+    Arguments:
+        command: name of the command
+        task: a doit task
+
+    Returns:
+        A function that returns the title
+    """
+    def title(task: types.Task) -> str:
+        # Extract the sub-task name (the part after `:`) from the task name.
+        return '{cmd: <{width}} {name}'.format(
+            cmd=command, width=constants.CMD_WIDTH, name=task.name.split(':')[1]
+        )
+    return title
