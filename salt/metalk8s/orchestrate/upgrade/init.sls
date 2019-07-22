@@ -1,4 +1,6 @@
 {%- set dest_version = pillar.orchestrate.dest_version %}
+{%- set kubeconfig = "/etc/kubernetes/admin.conf" %}
+{%- set context = "kubernetes-admin@kubernetes" %}
 
 Execute the upgrade prechecks:
   salt.runner:
@@ -14,7 +16,7 @@ Upgrade etcd cluster:
   salt.runner:
     - name: state.orchestrate
     - mods:
-      - metalk8s.orchestrate.upgrade.etcd
+      - metalk8s.orchestrate.etcd
     - saltenv: {{ saltenv }}
     - pillar:
         orchestrate:
@@ -27,8 +29,17 @@ Upgrade etcd cluster:
 
 {%- for node in cp_nodes + other_nodes %}
 
-  {%- set kubeconfig = "/etc/kubernetes/admin.conf" %}
-  {%- set context = "kubernetes-admin@kubernetes" %}
+  {%- set node_version = pillar.metalk8s.nodes[node].version|string %}
+  {%- set version_cmp = salt.pkg.version_cmp(dest_version, node_version) %}
+  {#- If dest_version = 2.1.0-dev and node_version = 2.1.0, version_cmp = 0
+      but we should not upgrade this node #}
+  {%- if version_cmp == -1
+      or (version_cmp == 0 and dest_version != node_version and '-' not in node_version) %}
+
+Skip node {{ node }}, already in {{ node_version }} newer than {{ dest_version }}:
+  test.succeed_without_changes
+
+  {%- else %}
 
 Set node {{ node }} version to {{ dest_version }}:
   metalk8s_kubernetes.node_label_present:
@@ -39,9 +50,9 @@ Set node {{ node }} version to {{ dest_version }}:
     - context: {{ context }}
     - require:
       - salt: Upgrade etcd cluster
-  {%- if previous_node is defined %}
+    {%- if previous_node is defined %}
       - salt: Deploy node {{ previous_node }}
-  {%- endif %}
+    {%- endif %}
 
 Deploy node {{ node }}:
   salt.runner:
@@ -61,8 +72,10 @@ Deploy node {{ node }}:
     - require_in:
       - salt: Deploy Kubernetes objects
 
-  {#- Ugly but needed since we have jinja2.7 (`loop.previtem` added in 2.10) #}
-  {%- set previous_node = node %}
+    {#- Ugly but needed since we have jinja2.7 (`loop.previtem` added in 2.10) #}
+    {%- set previous_node = node %}
+
+  {%- endif %}
 
 {%- endfor %}
 
@@ -71,7 +84,7 @@ Deploy Kubernetes objects:
     - name: state.orchestrate
     - mods:
       - metalk8s.deployed
-    - saltenv: {{ saltenv }}
+    - saltenv: metalk8s-{{ dest_version }}
     - require:
       - salt: Upgrade etcd cluster
 
@@ -80,7 +93,7 @@ Precheck for MetalK8s UI:
     - name: state.orchestrate
     - mods:
       - metalk8s.addons.ui.precheck
-    - saltenv: {{ saltenv }}
+    - saltenv: metalk8s-{{ dest_version }}
     - retry:
         attempts: 5
     - require:
@@ -91,6 +104,6 @@ Deploy MetalK8s UI:
     - name: state.orchestrate
     - mods:
       - metalk8s.addons.ui.deployed
-    - saltenv: {{ saltenv }}
+    - saltenv: metalk8s-{{ dest_version }}
     - require:
       - salt: Precheck for MetalK8s UI
