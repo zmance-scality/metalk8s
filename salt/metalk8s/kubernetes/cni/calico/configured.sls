@@ -15,7 +15,7 @@ Create kubeconf file for calico:
     - apiserver: https://{{ kube_api.service_ip }}:443
     - cluster: {{ kubernetes.cluster }}
     - require:
-      - pkg: Install m2crypto
+      - metalk8s_package_manager: Install m2crypto
 
 Create CNI calico configuration file:
   file.serialize:
@@ -28,7 +28,7 @@ Create CNI calico configuration file:
     - formatter: json
     - dataset:
         name: k8s-pod-network
-        cniVersion: "0.3.0"
+        cniVersion: "0.3.1"
         plugins:
           - type: "calico"
             log_level: "info"
@@ -45,5 +45,6 @@ Create CNI calico configuration file:
             snat: true
             capabilities:
               portMappings: true
+            conditionsV4: ["-d", "{{ grains.metalk8s.workload_plane_ip }}/32"]
     - require:
       - metalk8s_kubeconfig: Create kubeconf file for calico

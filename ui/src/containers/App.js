@@ -14,11 +14,12 @@ import Layout from './Layout';
 import Login from './Login';
 
 import IntlGlobalProvider from '../translations/IntlGlobalProvider';
-import { fetchConfigAction } from '../ducks/config';
+import { fetchConfigAction, setInitialLanguageAction } from '../ducks/config';
+import { initToggleSideBarAction } from '../ducks/app/layout';
 
 const messages = {
-  en: translations_en,
-  fr: translations_fr
+  EN: translations_en,
+  FR: translations_fr
 };
 
 addLocaleData([...locale_en, ...locale_fr]);
@@ -27,6 +28,8 @@ class App extends Component {
   componentDidMount() {
     document.title = messages[this.props.config.language].product_name;
     this.props.fetchConfig();
+    this.props.setInitialLanguage();
+    this.props.initToggleSideBar();
   }
 
   render() {
@@ -54,7 +57,9 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => {
   return {
-    fetchConfig: () => dispatch(fetchConfigAction())
+    fetchConfig: () => dispatch(fetchConfigAction()),
+    setInitialLanguage: () => dispatch(setInitialLanguageAction()),
+    initToggleSideBar: () => dispatch(initToggleSideBarAction())
   };
 };
 

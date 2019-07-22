@@ -118,8 +118,8 @@ TO_PULL : Tuple[targets.RemoteImage, ...] = (
         registry='calico',
         name='calico-node',
         remote_name='node',
-        version='3.7.2',
-        digest='sha256:8b565422f4cabd9652e0e912f3ea8707734cbc69f5835642f094d1ed0a087d5b',
+        version='3.8.0',
+        digest='sha256:6679ccc9f19dba3eb084db991c788dc9661ad3b5d5bafaa3379644229dca6b05',
         destination=constants.ISO_IMAGE_ROOT,
         task_dep=['_image_mkdir_root'],
     ),
@@ -127,8 +127,8 @@ TO_PULL : Tuple[targets.RemoteImage, ...] = (
         registry='calico',
         name='calico-kube-controllers',
         remote_name='kube-controllers',
-        version='3.7.2',
-        digest='sha256:d5533cb8df6150123cad26e369383a3e665c5e376f8c9dd7d80a8c86fa907e7c',
+        version='3.8.0',
+        digest='sha256:cf461efd25ee74d1855e1ee26db98fe87de00293f7d039212adb03c91fececcd',
         destination=constants.ISO_IMAGE_ROOT,
         task_dep=['_image_mkdir_root'],
     ),
@@ -253,6 +253,23 @@ TO_PULL : Tuple[targets.RemoteImage, ...] = (
         destination=constants.ISO_IMAGE_ROOT,
         task_dep=['_image_mkdir_root'],
     ),
+    targets.RemoteImage(
+        registry='quay.io/kubernetes-ingress-controller',
+        name='nginx-ingress-controller',
+        version='0.25.0',
+        digest='sha256:464db4880861bd9d1e74e67a4a9c975a6e74c1e9968776d8d4cc73492a56dfa5',
+        destination=constants.ISO_IMAGE_ROOT,
+        task_dep=['_image_mkdir_root'],
+    ),
+    targets.RemoteImage(
+        registry=constants.GOOGLE_REGISTRY,
+        remote_name='defaultbackend-amd64',
+        name='nginx-ingress-defaultbackend-amd64',
+        version='1.5',
+        digest='sha256:4dc5e07c8ca4e23bddb3153737d7b8c556e5fb2f29c4558b7cd6e6df99c512c7',
+        destination=constants.ISO_IMAGE_ROOT,
+        task_dep=['_image_mkdir_root'],
+    ),
 )
 
 
@@ -319,6 +336,23 @@ TO_BUILD : Tuple[targets.LocalImage, ...] = (
                 constants.ROOT/'ui'/'conf'/'nginx.conf'
             ]
         )
+    ),
+    targets.LocalImage(
+        name='metalk8s-utils',
+        version=constants.VERSION,
+        dockerfile=constants.ROOT/'images'/'metalk8s-utils'/'Dockerfile',
+        destination=constants.ISO_IMAGE_ROOT,
+        save_on_disk=True,
+        build_args={
+            'BASE_IMAGE': constants.CENTOS_BASE_IMAGE,
+            'BASE_IMAGE_SHA256': constants.CENTOS_BASE_IMAGE_SHA256,
+            'BUILD_DATE': datetime.datetime.now(datetime.timezone.utc)
+                            .astimezone()
+                            .isoformat(),
+            'VCS_REF': constants.GIT_REF or '<unknown>',
+            'METALK8S_VERSION': constants.VERSION,
+        },
+        task_dep=['_image_mkdir_root'],
     ),
 )
 

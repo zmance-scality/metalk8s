@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
-import memoizeOne from 'memoize-one';
-import { sortBy as sortByArray } from 'lodash';
 import { injectIntl, FormattedDate, FormattedTime } from 'react-intl';
 import styled from 'styled-components';
-
+import { Loader as LoaderCoreUI } from '@scality/core-ui';
 import { Table } from '@scality/core-ui';
-import { padding } from '@scality/core-ui/dist/style/theme';
+import { padding, fontWeight } from '@scality/core-ui/dist/style/theme';
 import CircleStatus from '../components/CircleStatus';
+import Tooltip from '../components/Tooltip';
 import {
-  fetchClusterStatusAction,
-  fetchAlertsAction,
+  refreshClusterStatusAction,
+  refreshAlertsAction,
+  stopRefreshAlertsAction,
+  stopRefreshClusterStatusAction,
   CLUSTER_STATUS_UP,
   CLUSTER_STATUS_DOWN
 } from '../ducks/app/monitoring';
+import { STATUS_CRITICAL, STATUS_SUCCESS } from '../components/constants';
+import { sortSelector } from '../services/utils';
+import NoRowsRenderer from '../components/NoRowsRenderer';
 
 const PageContainer = styled.div`
   box-sizing: border-box;
@@ -21,6 +25,10 @@ const PageContainer = styled.div`
   flex-direction: column;
   height: 100%;
   padding: ${padding.larger};
+
+  .sc-loader {
+    padding: 0 ${padding.smaller};
+  }
 `;
 
 const TableContainer = styled.div`
@@ -33,6 +41,8 @@ const TableContainer = styled.div`
 
 const PageSubtitle = styled.h3`
   margin: ${padding.small} 0;
+  display: flex;
+  align-items: center;
 `;
 
 const ClusterStatusTitleContainer = styled.div`
@@ -41,19 +51,34 @@ const ClusterStatusTitleContainer = styled.div`
 `;
 
 const ClusterStatusValue = styled.span`
-  margin-left: ${padding.small};
+  margin: 0 ${padding.small};
   font-weight: bold;
   color: ${props =>
     props.isUp ? props.theme.brand.success : props.theme.brand.danger};
 `;
 
+const QuestionMarkIcon = styled.i`
+  color: ${props => props.theme.brand.primary};
+`;
+
+const TooltipContent = styled.div`
+  color: ${props => props.theme.brand.secondary};
+  font-weight: ${fontWeight.bold};
+`;
+
+const ControlPlaneStatusLabel = styled.span`
+  margin-left: ${padding.smaller};
+`;
+
 const ClusterMonitoring = props => {
   useEffect(() => {
-    props.fetchAlerts();
+    props.refreshAlerts();
+    return () => props.stopRefreshAlerts();
   }, []);
 
   useEffect(() => {
-    props.fetchClusterStatus();
+    props.refreshClusterStatus();
+    return () => props.stopRefreshClusterStatus();
   }, []);
 
   const [sortBy, setSortBy] = useState('name');
@@ -63,22 +88,6 @@ const ClusterMonitoring = props => {
     setSortBy(sortBy);
     setSortDirection(sortDirection);
   };
-
-  // It's a copy paste from NodeList, we may need to extract this code later.
-  const sortAlerts = memoizeOne((nodes, sortBy, sortDirection) => {
-    const sortedList = sortByArray(nodes, [
-      node => {
-        return typeof node[sortBy] === 'string'
-          ? node[sortBy].toLowerCase()
-          : node[sortBy];
-      }
-    ]);
-
-    if (sortDirection === 'DESC') {
-      sortedList.reverse();
-    }
-    return sortedList;
-  });
 
   const columns = [
     {
@@ -117,16 +126,31 @@ const ClusterMonitoring = props => {
     }
   ];
 
-  const alerts = props.alerts.map(alert => {
-    return {
-      name: alert.labels.alertname,
-      severity: alert.labels.severity,
-      message: alert.annotations.message,
-      activeAt: alert.activeAt
-    };
-  });
+  const alerts = props.alerts.list
+    .filter(alert => alert.state !== 'pending')
+    .map(alert => {
+      return {
+        name: alert.labels.alertname,
+        severity: alert.labels.severity,
+        message: alert.annotations.message,
+        activeAt: alert.activeAt
+      };
+    });
 
-  const sortedAlerts = sortAlerts(alerts, sortBy, sortDirection);
+  const checkControlPlaneStatus = jobCount =>
+    jobCount > 0 ? STATUS_SUCCESS : STATUS_CRITICAL;
+
+  const apiServerStatus = checkControlPlaneStatus(
+    props.cluster.apiServerStatus
+  );
+  const kubeSchedulerStatus = checkControlPlaneStatus(
+    props.cluster.kubeSchedulerStatus
+  );
+  const kubeControllerManagerStatus = checkControlPlaneStatus(
+    props.cluster.kubeControllerManagerStatus
+  );
+
+  const sortedAlerts = sortSelector(alerts, sortBy, sortDirection);
 
   return (
     <PageContainer>
@@ -137,9 +161,40 @@ const ClusterMonitoring = props => {
         >
           {props.clusterStatus.label}
         </ClusterStatusValue>
+        <Tooltip
+          placement="right"
+          overlay={
+            <TooltipContent>
+              <div>
+                <CircleStatus status={apiServerStatus} />
+                <ControlPlaneStatusLabel>
+                  {props.intl.messages.api_server}
+                </ControlPlaneStatusLabel>
+              </div>
+              <div>
+                <CircleStatus status={kubeSchedulerStatus} />
+                <ControlPlaneStatusLabel>
+                  {props.intl.messages.kube_scheduler}
+                </ControlPlaneStatusLabel>
+              </div>
+              <div>
+                <CircleStatus status={kubeControllerManagerStatus} />
+                <ControlPlaneStatusLabel>
+                  {props.intl.messages.kube_controller_manager}
+                </ControlPlaneStatusLabel>
+              </div>
+            </TooltipContent>
+          }
+        >
+          <QuestionMarkIcon className="fas fa-question-circle" />
+        </Tooltip>
+        {props.clusterStatus.isLoading ? <LoaderCoreUI size="small" /> : null}
       </ClusterStatusTitleContainer>
 
-      <PageSubtitle>{props.intl.messages.alerts}</PageSubtitle>
+      <PageSubtitle>
+        {props.intl.messages.alerts}
+        {props.alerts.isLoading ? <LoaderCoreUI size="small" /> : null}
+      </PageSubtitle>
       <TableContainer>
         <Table
           list={sortedAlerts}
@@ -149,6 +204,9 @@ const ClusterMonitoring = props => {
           sortBy={sortBy}
           sortDirection={sortDirection}
           onSort={onSort}
+          noRowsRenderer={() => (
+            <NoRowsRenderer content={props.intl.messages.no_data_available} />
+          )}
         />
       </TableContainer>
     </PageContainer>
@@ -157,8 +215,9 @@ const ClusterMonitoring = props => {
 
 const mapStateToProps = (state, props) => {
   return {
-    alerts: state.app.monitoring.alert.list,
-    clusterStatus: makeClusterStatus(state, props)
+    alerts: state.app.monitoring.alert,
+    clusterStatus: makeClusterStatus(state, props),
+    cluster: state.app.monitoring.cluster
   };
 };
 
@@ -181,13 +240,15 @@ const makeClusterStatus = (state, props) => {
     label = props.intl.messages[cluster.error] || cluster.error;
   }
 
-  return { value, label };
+  return { value, label, isLoading: cluster.isLoading };
 };
 
 const mapDispatchToProps = dispatch => {
   return {
-    fetchClusterStatus: () => dispatch(fetchClusterStatusAction()),
-    fetchAlerts: () => dispatch(fetchAlertsAction())
+    refreshClusterStatus: () => dispatch(refreshClusterStatusAction()),
+    refreshAlerts: () => dispatch(refreshAlertsAction()),
+    stopRefreshAlerts: () => dispatch(stopRefreshAlertsAction()),
+    stopRefreshClusterStatus: () => dispatch(stopRefreshClusterStatusAction())
   };
 };
 

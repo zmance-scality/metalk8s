@@ -38,7 +38,6 @@ def transient_files(host):
 # }}}
 
 
-@pytest.mark.skip(reason="Flaky test, needs to be fixed (#1304)")
 @scenario(
     "../features/static_pods.feature",
     "Static Pods restart on configuration change",
@@ -48,7 +47,9 @@ def test_static_pods_restart(host, transient_files):
 
 
 @given("I have set up a static pod", target_fixture="static_pod_id")
-def set_up_static_pod(host, hostname, k8s_client, transient_files):
+def set_up_static_pod(
+    host, hostname, k8s_client, utils_image, transient_files
+):
     manifest_path = str(MANIFESTS_PATH / "{}.yaml".format(DEFAULT_POD_NAME))
 
     with host.sudo():
@@ -71,7 +72,7 @@ def set_up_static_pod(host, hostname, k8s_client, transient_files):
     manifest_template = SOURCE_TEMPLATE.read_text(encoding="utf-8")
     manifest = string.Template(manifest_template).substitute(
         name=DEFAULT_POD_NAME,
-        image="busybox",  # TODO: use base image from #1093
+        image=utils_image,
         config_path=config_path,
     )
 

@@ -212,6 +212,11 @@ SALT_FILES : Tuple[Union[Path, targets.AtomicTarget], ...] = (
     ),
     Path('salt/metalk8s/addons/ui/precheck.sls'),
 
+
+    Path('salt/metalk8s/addons/nginx-ingress/deployed/init.sls'),
+    Path('salt/metalk8s/addons/nginx-ingress/deployed/chart.sls'),
+    Path('salt/metalk8s/addons/nginx-ingress/deployed/namespace.sls'),
+
     Path('salt/metalk8s/container-engine/containerd/configured.sls'),
     Path('salt/metalk8s/container-engine/containerd/init.sls'),
     Path('salt/metalk8s/container-engine/containerd/installed.sls'),
@@ -228,6 +233,9 @@ SALT_FILES : Tuple[Union[Path, targets.AtomicTarget], ...] = (
     Path('salt/metalk8s/internal/preflight/init.sls'),
     Path('salt/metalk8s/internal/preflight/mandatory.sls'),
     Path('salt/metalk8s/internal/preflight/recommended.sls'),
+
+    Path('salt/metalk8s/sreport/init.sls'),
+    Path('salt/metalk8s/sreport/installed.sls'),
 
     Path('salt/metalk8s/kubectl/init.sls'),
     Path('salt/metalk8s/kubectl/installed.sls'),
@@ -324,7 +332,9 @@ SALT_FILES : Tuple[Union[Path, targets.AtomicTarget], ...] = (
     Path('salt/metalk8s/orchestrate/bootstrap/init.sls'),
     Path('salt/metalk8s/orchestrate/bootstrap/accept-minion.sls'),
     Path('salt/metalk8s/orchestrate/deploy_node.sls'),
-    Path('salt/metalk8s/orchestrate/upgrade/etcd.sls'),
+    Path('salt/metalk8s/orchestrate/downgrade/init.sls'),
+    Path('salt/metalk8s/orchestrate/downgrade/precheck.sls'),
+    Path('salt/metalk8s/orchestrate/etcd.sls'),
     Path('salt/metalk8s/orchestrate/upgrade/init.sls'),
     Path('salt/metalk8s/orchestrate/upgrade/precheck.sls'),
     Path('salt/metalk8s/orchestrate/register_etcd.sls'),
@@ -384,6 +394,8 @@ SALT_FILES : Tuple[Union[Path, targets.AtomicTarget], ...] = (
     Path('salt/_modules/metalk8s_etcd.py'),
     Path('salt/_modules/metalk8s_kubernetes_utils.py'),
     Path('salt/_modules/metalk8s.py'),
+    Path('salt/_modules/metalk8s_package_manager.py'),
+
 
     Path('salt/_pillar/metalk8s.py'),
     Path('salt/_pillar/metalk8s_endpoints.py'),
@@ -403,6 +415,7 @@ SALT_FILES : Tuple[Union[Path, targets.AtomicTarget], ...] = (
     Path('salt/_states/metalk8s_drain.py'),
     Path('salt/_states/metalk8s_etcd.py'),
     Path('salt/_states/metalk8s_kubernetes.py'),
+    Path('salt/_states/metalk8s_package_manager.py'),
 
     Path('salt/_utils/pillar_utils.py'),
 
