@@ -79,6 +79,7 @@ def task_populate_iso() -> types.TaskDict:
             '_iso_render_bootstrap',
             '_iso_add_node_manifest',
             '_iso_generate_product_txt',
+            '_iso_add_utilities_scripts',
             'images',
             'salt_tree',
             'packaging',
@@ -94,25 +95,52 @@ def task__iso_mkdir_examples() -> types.TaskDict:
 
 def task__iso_add_node_manifest() -> types.TaskDict:
     """Copy the node announcement manifest to examples."""
+    # generic node manifest
+    src_generic = constants.ROOT/'examples'/'new-node.yaml'
     dest_generic = constants.ISO_ROOT/'examples'/'new-node.yaml'
+    new_node_generic = [src_generic, dest_generic]
+    # vagrant node manifest
+    src_vagrant = constants.ROOT/'examples'/'new-node_vagrant.yaml'
     dest_vagrant = constants.ISO_ROOT/'examples'/'new-node_vagrant.yaml'
-    new_node_generic = [
-        constants.ROOT/'examples'/'new-node.yaml', dest_generic
-    ]
-    new_node_vagrant = [
-        constants.ROOT/'examples'/'new-node_vagrant.yaml', dest_vagrant
-    ]
+    new_node_vagrant = [src_vagrant, dest_vagrant]
     return {
-         'title': lambda task: utils.title_with_target1('GENERATE', task),
+         'title': lambda task: utils.title_with_target1('COPY', task),
          'actions': [
              (coreutils.cp_file, new_node_generic),
              (coreutils.cp_file, new_node_vagrant)
          ],
          'targets': [dest_generic, dest_vagrant],
          'task_dep': ['_iso_mkdir_examples'],
-         'uptodate': [True],
+         'file_dep': [src_generic, src_vagrant],
          'clean': True,
      }
+
+
+def task__iso_add_utilities_scripts() -> types.TaskDict:
+    """Copy the ISO manager script to scripts."""
+    iso_manager_src = constants.ROOT/'scripts'/'iso-manager.sh'
+    iso_manager_dest = constants.ISO_ROOT/'iso-manager.sh'
+    iso_manager = [iso_manager_src, iso_manager_dest]
+
+    downgrade_src = constants.ROOT/'scripts'/'downgrade.sh'
+    downgrade_dest = constants.ISO_ROOT/'downgrade.sh'
+    downgrade = [downgrade_src, downgrade_dest]
+
+    upgrade_src = constants.ROOT/'scripts'/'upgrade.sh'
+    upgrade_dest = constants.ISO_ROOT/'upgrade.sh'
+    upgrade = [upgrade_src, upgrade_dest]
+    return {
+            'title': lambda task: utils.title_with_target1('COPY', task),
+            'actions': [
+                    (coreutils.cp_file, iso_manager),
+                    (coreutils.cp_file, downgrade),
+                    (coreutils.cp_file, upgrade)
+                ],
+            'targets': [iso_manager_dest, downgrade_dest, upgrade_dest],
+            'task_dep': ['_iso_mkdir_root'],
+            'file_dep': [iso_manager_src, downgrade_src, upgrade_src],
+            'clean': True,
+            }
 
 
 def task__iso_render_bootstrap() -> types.TaskDict:
