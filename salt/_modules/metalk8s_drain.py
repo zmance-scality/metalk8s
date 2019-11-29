@@ -420,6 +420,7 @@ class Drain(object):
             pending = []
             iteration_start = time.time()    # For time processing pods
             for pod in pods:
+                log.error('Getting %s pod', pod['metadata']['name'])
                 response = __salt__['metalk8s_kubernetes.get_object'](
                     kind='Pod',
                     apiVersion='v1',
