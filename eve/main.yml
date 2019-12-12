@@ -39,7 +39,7 @@ models:
       # There are 3 CPUs available for Docker, and 1 for `doit` in the Pod.
       # Given the network IO-bound nature of some of the build steps, and
       # most build steps running in Docker, set concurrency to 4.
-      command: ./doit.sh -n 4
+      command: echo "HTTP_PROXY=$HTTP_PROXY" && ./doit.sh -n 4
       usePTY: true
       haltOnFailure: true
   - ShellCommand: &ssh_ip_setup
