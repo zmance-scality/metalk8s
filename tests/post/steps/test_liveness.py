@@ -27,14 +27,12 @@ def test_expected_pods(host):
 @then(parsers.parse(
     "we can exec '{command}' in the pod labeled '{label}' "
     "in the '{namespace}' namespace"))
-def check_exec(request, host, k8s_client, command, label, namespace):
-    ssh_config = request.config.getoption('--ssh-config')
-
+def check_exec(host, k8s_client, command, label, namespace):
     # Just in case something is not ready yet, we make sure we can find
     # candidates before trying further
     def _wait_for_pods():
         pods = kube_utils.get_pods(
-            k8s_client, ssh_config, label, namespace=namespace
+            k8s_client, label=label, namespace=namespace,
         )
         assert len(pods) > 0
 
@@ -46,7 +44,7 @@ def check_exec(request, host, k8s_client, command, label, namespace):
     )
 
     candidates = kube_utils.get_pods(
-        k8s_client, ssh_config, label, namespace=namespace
+        k8s_client, label=label, namespace=namespace,
     )
 
     assert len(candidates) == 1, (
