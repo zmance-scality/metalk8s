@@ -3,6 +3,7 @@ locals {
     mode        = var.metalk8s_iso_mode,
     source      = var.metalk8s_iso_source,
     destination = var.metalk8s_iso_destination,
+    mountpoint  = var.metalk8s_iso_mountpoint,
   }
 }
 
@@ -52,6 +53,73 @@ resource "null_resource" "download_remote_iso" {
         : "",
         "curl -o ${local.metalk8s_iso.destination} ${local.metalk8s_iso.source}",
       ])),
+    ]
+  }
+}
+
+resource "null_resource" "configure_bootstrap" {
+  count = var.metalk8s_bootstrap ? 1 : 0
+
+  depends_on = [
+    null_resource.bootstrap_iface_config,
+  ]
+
+  connection {
+    host        = local.bootstrap_ip
+    type        = "ssh"
+    user        = "centos"
+    private_key = file(var.ssh_key_pair.private_key)
+  }
+
+  # Prepare for bootstrap installation
+  provisioner "remote-exec" {
+    inline = [
+      join(" ", compact([
+        "sudo env",
+        local.control_plane_network.enabled
+        ? "CP_NET=${local.control_plane_subnet[0].cidr}"
+        : "",
+        local.workload_plane_network.enabled
+        ? "WP_NET=${local.workload_plane_subnet[0].cidr}"
+        : "",
+        local.control_plane_network.enabled
+        && local.control_plane_network.vip != ""
+        ? "API_SERVER_VIP=${local.control_plane_network.vip}"
+        : "",
+        "ARCHIVE_PATH=${local.metalk8s_iso.mountpoint}",
+        "SSH_IDENTITY=/home/centos/.ssh/bootstrap",
+        "/home/centos/scripts/prepare-bootstrap.sh",
+      ])),
+    ]
+  }
+}
+
+resource "null_resource" "run_bootstrap" {
+  count = var.metalk8s_bootstrap ? 1 : 0
+
+  depends_on = [
+    null_resource.upload_local_iso,
+    null_resource.download_remote_iso,
+    null_resource.configure_bootstrap,
+    null_resource.bootstrap_use_proxy,
+  ]
+
+  connection {
+    host        = local.bootstrap_ip
+    type        = "ssh"
+    user        = "centos"
+    private_key = file(var.ssh_key_pair.private_key)
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo mkdir -p ${local.metalk8s_iso.mountpoint}",
+      join(" ", [
+        "sudo mount -o loop",
+        local.metalk8s_iso.destination,
+        local.metalk8s_iso.mountpoint,
+      ]),
+      "sudo ${local.metalk8s_iso.mountpoint}/bootstrap.sh --verbose",
     ]
   }
 }
