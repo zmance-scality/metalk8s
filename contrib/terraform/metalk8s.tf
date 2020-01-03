@@ -83,8 +83,8 @@ resource "null_resource" "configure_bootstrap" {
         ? "WP_NET=${local.workload_plane_subnet[0].cidr}"
         : "",
         local.control_plane_network.enabled
-        && local.control_plane_network.vip != ""
-        ? "API_SERVER_VIP=${local.control_plane_network.vip}"
+        && local.control_plane_vip != ""
+        ? "API_SERVER_VIP=${local.control_plane_vip}"
         : "",
         "ARCHIVE_PATH=${local.metalk8s_iso.mountpoint}",
         "SSH_IDENTITY=/home/centos/.ssh/bootstrap",
