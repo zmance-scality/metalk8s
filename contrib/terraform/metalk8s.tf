@@ -84,8 +84,9 @@ resource "null_resource" "configure_bootstrap" {
         : "",
         local.control_plane_network.enabled
         && local.control_plane_vip != ""
-        ? "API_SERVER_VIP=${local.control_plane_vip}"
-        : "",
+        ? "API_SERVER_VIP=${
+          openstack_networking_port_v2.control_plane_vip[0].all_fixed_ips[0]
+        }" : "",
         "ARCHIVE_PATH=${local.metalk8s_iso.mountpoint}",
         "SSH_IDENTITY=/home/centos/.ssh/bootstrap",
         "/home/centos/scripts/prepare-bootstrap.sh",
