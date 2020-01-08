@@ -581,14 +581,6 @@ stages:
           workdir: build/contrib/terraform/
           haltOnFailure: true
       - ShellCommand:
-          # TODO: check if should be removed in 2.0
-          name: Install kubectl on the boostrap node
-          command: >
-            ssh -F ssh_config bootstrap
-            sudo yum install -y kubectl --disablerepo=*
-            --enablerepo=metalk8s-kubernetes
-          workdir: build/contrib/terraform/
-      - ShellCommand:
           <<: *bastion_tests
           name: Run installation scenarii on the bastion
           env:
