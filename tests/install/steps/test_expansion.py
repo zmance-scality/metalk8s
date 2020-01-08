@@ -164,7 +164,7 @@ def run_salt_command(host, command, bootstrap_id):
     )
 
     assert output.exit_status == 0, \
-        'deploy failed with: \nout: {}\nerr:'.format(
+        'deploy failed with: \nout: {}\nerr: {}'.format(
             output.stdout,
             output.stderr
         )
