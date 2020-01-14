@@ -32,15 +32,6 @@ def version(request, host):
             'source %s && echo $VERSION', str(product_path)
         )
 
-@pytest.fixture(scope="module")
-def hostname(host):
-    """Return the result of `hostname` on the `host` fixture.
-
-    The hostname registered in the SSH config file may not match the one known
-    by the server, especially if running tests locally.
-    """
-    return host.check_output('hostname')
-
 
 @pytest.fixture(scope="module")
 def kubeconfig_data(request, host):
@@ -111,6 +102,15 @@ def bootstrap_config(host):
         return yaml.safe_load(config_file.content_string)
 
 
+@pytest.fixture(scope='module')
+def bootstrap_id(host):
+    with host.sudo():
+        json_out = host.check_output(
+            "salt-call --local --out json grains.item id"
+        )
+    return json.loads(json_out)["local"]["id"]
+
+
 @pytest.fixture
 def registry_address(host, version):
     with host.sudo():
@@ -132,14 +132,11 @@ def utils_image(registry_address, version):
     )
 
 
-def count_running_pods(
-        request, k8s_client, pods_count, label, namespace, node):
-    ssh_config = request.config.getoption('--ssh-config')
-
+def count_running_pods(k8s_client, pods_count, label, namespace, node):
     def _check_pods_count():
         pods = kube_utils.get_pods(
-            k8s_client, ssh_config, label, node,
-            namespace=namespace, state="Running",
+            k8s_client,
+            label=label, node=node, namespace=namespace, state="Running",
         )
         assert len(pods) == pods_count
 
@@ -168,10 +165,8 @@ def check_service(host):
 
 
 @given(_COUNT_RUNNING_PODS_PARSER, converters=dict(pods_count=int))
-def given_count_running_pods(
-        request, k8s_client, pods_count, label, namespace, node):
-    return count_running_pods(
-        request, k8s_client, pods_count, label, namespace, node)
+def given_count_running_pods(k8s_client, pods_count, label, namespace, node):
+    return count_running_pods(k8s_client, pods_count, label, namespace, node)
 
 
 # }}}
@@ -183,10 +178,8 @@ def verify_kubeapi_service(host):
 
 
 @then(_COUNT_RUNNING_PODS_PARSER, converters=dict(pods_count=int))
-def then_count_running_pods(
-        request, k8s_client, pods_count, label, namespace, node):
-    return count_running_pods(
-        request, k8s_client, pods_count, label, namespace, node)
+def then_count_running_pods(k8s_client, pods_count, label, namespace, node):
+    return count_running_pods(k8s_client, pods_count, label, namespace, node)
 
 
 @then(parsers.parse(
