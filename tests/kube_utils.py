@@ -10,8 +10,8 @@ MAP_STATUS = {
 
 
 def get_pods(
-    k8s_client, ssh_config, label=None,
-    node=None, namespace=None, state='Running'
+    k8s_client,
+    label=None, node=None, namespace=None, state='Running'
 ):
     """Return the pod `component` from the specified node"""
     field_selector = []
@@ -20,8 +20,7 @@ def get_pods(
         field_selector.append('status.phase={}'.format(state))
 
     if node:
-        nodename = utils.resolve_hostname(node, ssh_config)
-        field_selector.append('spec.nodeName={}'.format(nodename))
+        field_selector.append('spec.nodeName={}'.format(node))
 
     kwargs = {}
 
