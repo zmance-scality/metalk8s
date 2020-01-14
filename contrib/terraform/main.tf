@@ -22,6 +22,11 @@ locals {
   }"
 }
 
+# Openstack base image to use for worker machines (bootstrap and nodes)
+locals {
+  os_image = var.openstack_images[var.openstack_use_os]
+}
+
 # Server group for the cluster
 resource "openstack_compute_servergroup_v2" "all_machines" {
   name     = "${local.prefix}-servergroup"
