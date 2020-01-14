@@ -6,13 +6,14 @@ from tests import kube_utils, utils
 
 # Helpers {{{
 
-def _check_pods_status(k8s_client, expected_status, ssh_config,
+def _check_pods_status(k8s_client, expected_status,
                        namespace=None, label=None):
     # Helper to use retry utils
     def _wait_for_status():
         pods = kube_utils.get_pods(
-            k8s_client, ssh_config, label,
-            namespace=namespace
+            k8s_client,
+            label=label,
+            namespace=namespace,
         )
         assert pods
 
@@ -50,19 +51,12 @@ def _check_pods_status(k8s_client, expected_status, ssh_config,
 
 
 @given(parsers.parse("pods with label '{label}' are '{expected_status}'"))
-def check_pod_status(request, host, k8s_client, label, expected_status):
-    ssh_config = request.config.getoption('--ssh-config')
-
-    _check_pods_status(
-        k8s_client, expected_status, ssh_config, label=label
-    )
+def check_pod_status(k8s_client, label, expected_status):
+    _check_pods_status(k8s_client, expected_status, label=label)
 
 
 @given(parsers.parse("all Pod are '{expected_status}'"))
-def check_all_pods_status(request, host, k8s_client, expected_status):
-    ssh_config = request.config.getoption('--ssh-config')
+def check_all_pods_status(k8s_client, expected_status):
+    _check_pods_status(k8s_client, expected_status)
 
-    _check_pods_status(
-        k8s_client, expected_status, ssh_config
-    )
 # }}}
