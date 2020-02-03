@@ -1388,6 +1388,7 @@ stages:
             -target null_resource.ssh_config
           workdir: build/eve/workers/openstack-multiple-nodes/terraform/
           haltOnFailure: true
+      - ShellCommand: *copy_bastion_pub_key_ssh
       - ShellCommand:
           name: Copy the backup archive to the bootstrap node
           command: >
