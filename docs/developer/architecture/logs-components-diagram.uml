@@ -1,0 +1,49 @@
+@startuml
+
+node "node1" {
+    journal_logs1 <-- [collector1] : read
+    container_logs1 <-- [collector1] : read
+}
+
+node "node2" {
+    journal_logs2 <-- [collector2] : read
+    container_logs2 <-- [collector2] : read
+}
+
+package "distributors" {
+    [distributor1]
+    [distributor2] 
+}
+
+package "ingesters" {
+    [ingester1]
+    [ingester2]
+}
+
+database "storage" {
+    [volume1]
+    [volume2]
+}
+
+package "queriers" {
+    [querier1]
+    [querier2]
+}
+
+collector1 --> distributor1
+collector1 --> distributor2
+collector2 --> distributor1
+collector2 --> distributor2
+
+distributor1 --> ingester1
+distributor2 --> ingester2
+
+ingester1 --> volume1 : write
+ingester2 --> volume2 : write
+
+querier1 --> ingester1 : read
+querier1 --> volume1 : read
+querier2 --> ingester2 : read
+querier2 --> volume2 : read
+
+@enduml
